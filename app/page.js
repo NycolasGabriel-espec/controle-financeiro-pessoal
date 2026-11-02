@@ -75,6 +75,12 @@ function previousMonthOf(value) {
   return `${previous.getFullYear()}-${String(previous.getMonth() + 1).padStart(2, '0')}`;
 }
 
+function nextMonthOf(value) {
+  const [year, month] = value.split('-').map(Number);
+  const next = new Date(year, month, 1);
+  return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`;
+}
+
 function monthLabel(value) {
   return monthName.format(new Date(`${value}-01T12:00:00`));
 }
@@ -120,6 +126,7 @@ function Icon({ name, size = 19, strokeWidth = 1.8 }) {
     help: <><circle cx="12" cy="12" r="9" /><path d="M9.6 9a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.1-2.4 3.8M12 17.4h.01" /></>,
     plus: <><path d="M12 5v14M5 12h14" /></>,
     chevron: <path d="m9 18 6-6-6-6" />,
+    chevronLeft: <path d="m15 18-6-6 6-6" />,
     down: <path d="m7 10 5 5 5-5" />,
     arrowUp: <><path d="M7 17 17 7M7 7h10v10" /></>,
     arrowDown: <><path d="M7 7 17 17M7 17h10V7" /></>,
@@ -688,7 +695,7 @@ export default function Home() {
         <div className="content-wrap">
           <div className="page-heading">
             <div><div className="eyebrow">SUA VIDA FINANCEIRA, EM EQUILÍBRIO</div><h1>Visão geral</h1><p>Acompanhe o que entra, o que sai e o que fica.</p></div>
-            <div className="heading-actions"><label className="month-select"><span className="sr-only">Mês selecionado</span><input type="month" value={month} onChange={event => { if (event.target.value) setMonth(event.target.value); }} aria-label="Selecionar mês" /></label>{previewMode ? <button className="button button-primary" onClick={() => { setPreviewMode(false); setRows([]); setBudgetRows([]); setGoalRows([]); setRecurringRows([]); }}><Icon name="plus" size={17} />Criar conta para salvar</button> : <><button className="button button-outline" onClick={() => setModal('import')}><Icon name="upload" size={17} />Importar CSV</button><button className="button button-primary" onClick={() => { setEditing(null); setCategoryValue(''); setSuggestedCategory(''); setModal('movement'); }}><Icon name="plus" size={17} />Nova movimentação</button></>}</div>
+            <div className="heading-actions"><div className="month-control" role="group" aria-label="Navegação mensal"><button type="button" className="month-nav-button" aria-label={`Ir para ${monthLabel(previousMonthOf(month))}`} title="Mês anterior" onClick={() => setMonth(previousMonthOf(month))}><Icon name="chevronLeft" size={17} /></button><label className="month-select"><span className="sr-only">Mês selecionado</span><input type="month" value={month} onChange={event => { if (event.target.value) setMonth(event.target.value); }} aria-label="Selecionar mês" /></label><button type="button" className="month-nav-button" aria-label={`Ir para ${monthLabel(nextMonthOf(month))}`} title="Próximo mês" onClick={() => setMonth(nextMonthOf(month))}><Icon name="chevron" size={17} /></button></div>{previewMode ? <button className="button button-primary" onClick={() => { setPreviewMode(false); setRows([]); setBudgetRows([]); setGoalRows([]); setRecurringRows([]); }}><Icon name="plus" size={17} />Criar conta para salvar</button> : <><button className="button button-outline" onClick={() => setModal('import')}><Icon name="upload" size={17} />Importar CSV</button><button className="button button-primary" onClick={() => { setEditing(null); setCategoryValue(''); setSuggestedCategory(''); setModal('movement'); }}><Icon name="plus" size={17} />Nova movimentação</button></>}</div>
           </div>
 
           {!supabase && <div className="notice error-notice">A conexão com o banco não está configurada.</div>}
