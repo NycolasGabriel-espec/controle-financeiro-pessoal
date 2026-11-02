@@ -3,13 +3,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { expenseCategories, incomeCategories, suggestCategory } from '../lib/categories';
+import { SpaceLogin } from '@/components/ui/space-login';
 
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const shortMoney = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const monthName = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
 const dateName = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' });
 
-const categoryColors = ['#2563EB', '#84CC16', '#F59E0B', '#60A5FA', '#22C55E', '#A1A1AA', '#3B82F6'];
+const categoryColors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)', 'var(--chart-6)', 'var(--chart-7)'];
 
 const demoBudgets = [
   { id: 'demo-budget-home', mes: '2026-10-01', categoria: 'Moradia', limite: 2200 },
@@ -123,84 +124,32 @@ function Icon({ name, size = 19, strokeWidth = 1.8 }) {
     menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
     pencil: <><path d="m4 16.5-.8 4.3 4.3-.8L19.8 7.7a2.3 2.3 0 0 0-3.2-3.2z" /><path d="m14.8 6.5 2.7 2.7" /></>,
     trash: <><path d="M4 7h16M10 11v6m4-6v6M5 7l1 13h12l1-13M9 7V4h6v3" /></>,
+    lock: <><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></>,
   };
   return <svg {...common}>{shapes[name] || shapes.grid}</svg>;
 }
 
 function AuthScreen({ onDemo }) {
-  const [mode, setMode] = useState('signin');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
-  const [working, setWorking] = useState(false);
-
-  async function submit(event) {
-    event.preventDefault();
-    setError('');
-    setMessage('');
+  async function submit({ email, password, mode }) {
     if (!supabase) {
-      setError('A conexão com o Supabase ainda não está configurada.');
-      return;
+      throw new Error('A conexão com o Supabase ainda não está configurada.');
     }
-    setWorking(true);
     const result = mode === 'signup'
-      ? await supabase.auth.signUp({ email: email.trim(), password, options: { emailRedirectTo: window.location.origin } })
-      : await supabase.auth.signInWithPassword({ email: email.trim(), password });
-    setWorking(false);
+      ? await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } })
+      : await supabase.auth.signInWithPassword({ email, password });
     if (result.error) {
-      setError(result.error.message === 'Invalid login credentials' ? 'E-mail ou senha não conferem.' : result.error.message);
-      return;
+      throw new Error(result.error.message === 'Invalid login credentials' ? 'E-mail ou senha não conferem.' : result.error.message);
     }
     if (mode === 'signup' && !result.data.session) {
-      setMessage('Conta criada. Confirme seu e-mail e depois entre para acessar seus dados.');
+      return { message: 'Conta criada. Confirme seu e-mail e depois entre para acessar seus dados.' };
     }
   }
 
-  return (
-    <main className="auth-shell">
-      <section className="auth-story">
-        <Brand />
-        <div className="auth-story-copy">
-          <div className="eyebrow light-eyebrow"><span /> FINANÇAS COM MAIS CLAREZA</div>
-          <h1>Seu dinheiro,<br /><em>no seu ritmo.</em></h1>
-          <p>Entenda seus hábitos, acompanhe cada escolha e construa uma relação mais leve com as suas finanças.</p>
-          <div className="auth-mini-card">
-            <div className="mini-top"><span>Saldo do mês</span><span className="mini-dot" /></div>
-            <strong>R$ 2.571,10</strong>
-            <div className="mini-bars"><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /></div>
-            <div className="mini-bottom"><span>Receitas</span><span>Despesas</span></div>
-          </div>
-        </div>
-        <div className="auth-footnote">Seus dados pertencem a você. Acesso protegido por conta e senha.</div>
-      </section>
-      <section className="auth-panel">
-        <div className="auth-form-wrap">
-          <div className="auth-mobile-brand"><Brand /></div>
-          <div className="eyebrow">BEM-VINDO(A)</div>
-          <h2>{mode === 'signin' ? 'Entre na sua conta' : 'Crie sua conta'}</h2>
-          <p className="muted">{mode === 'signin' ? 'Acesse seu espaço financeiro pessoal.' : 'Seus registros ficam isolados e protegidos.'}</p>
-          <div className="auth-tabs" role="tablist" aria-label="Acesso">
-            <button className={mode === 'signin' ? 'active' : ''} onClick={() => { setMode('signin'); setError(''); setMessage(''); }}>Entrar</button>
-            <button className={mode === 'signup' ? 'active' : ''} onClick={() => { setMode('signup'); setError(''); setMessage(''); }}>Criar conta</button>
-          </div>
-          <form className="auth-form" onSubmit={submit}>
-            <label>E-mail<input type="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="voce@exemplo.com" autoComplete="email" required /></label>
-            <label>Senha<input type="password" value={password} onChange={event => setPassword(event.target.value)} placeholder="Pelo menos 8 caracteres" autoComplete={mode === 'signin' ? 'current-password' : 'new-password'} minLength={8} required /></label>
-            {error && <div className="form-alert error-alert">{error}</div>}
-            {message && <div className="form-alert success-alert">{message}</div>}
-            <button className="button button-primary auth-submit" type="submit" disabled={working}>{working ? 'Aguarde…' : mode === 'signin' ? 'Entrar na conta' : 'Criar conta'}<Icon name="chevron" size={17} /></button>
-          </form>
-          <button type="button" className="demo-login-button" onClick={onDemo}>Explorar demonstração fictícia <Icon name="chevron" size={15} /></button>
-          <div className="auth-privacy"><span className="lock-mark">◈</span> Seus dados são privados e protegidos por políticas de acesso por usuário.</div>
-        </div>
-      </section>
-    </main>
-  );
+  return <SpaceLogin brand={<Brand />} onSubmit={submit} onDemo={onDemo} />;
 }
 
 function Brand() {
-  return <div className="brand"><span className="brand-mark"><span /><span /><span /></span><span>CoinPulse<span className="brand-dot">.</span></span></div>;
+  return <div className="brand"><span className="brand-mark"><span /><span /><span /></span><span>Gestão Finance<span className="brand-dot">.</span></span></div>;
 }
 
 function Modal({ title, onClose, children, wide = false }) {
@@ -238,7 +187,7 @@ function CashFlowChart({ rows, month }) {
       <div className="chart-legend"><span><i className="legend-income" /> Receitas</span><span><i className="legend-expense" /> Despesas</span><span className="chart-unit">BRL</span></div>
       <div className="chart-columns" role="img" aria-label="Evolução mensal de receitas e despesas">
         {points.map(point => <div className="chart-column" key={point.key}>
-          <div className="chart-bar-pair"><span className="chart-bar income-bar" style={{ height: `${point.income ? Math.max(3, point.income / max * 92) : 0}px` }} title={`${point.label}: receitas ${money.format(point.income)}`} /><span className="chart-bar expense-bar" style={{ height: `${point.expense ? Math.max(3, point.expense / max * 92) : 0}px` }} title={`${point.label}: despesas ${money.format(point.expense)}`} /></div>
+          <div className="chart-bar-pair"><span className="chart-bar income-bar" style={{ height: `${point.income ? Math.max(3, point.income / max * 100) : 0}%` }} title={`${point.label}: receitas ${money.format(point.income)}`} /><span className="chart-bar expense-bar" style={{ height: `${point.expense ? Math.max(3, point.expense / max * 100) : 0}%` }} title={`${point.label}: despesas ${money.format(point.expense)}`} /></div>
           <span className="chart-month">{point.label}</span>
         </div>)}
       </div>
@@ -276,7 +225,7 @@ function BalanceTrendChart({ rows, month }) {
           const height = point.balance ? Math.max(3, Math.abs(point.balance) / max * 46) : 0;
           return <div className="balance-chart-column" key={point.key}>
             <div className="balance-chart-track">
-              <span className={`balance-bar ${point.balance < 0 ? 'negative' : 'positive'}`} style={point.balance < 0 ? { height: `${height}px`, top: '50%' } : { height: `${height}px`, bottom: '50%' }} title={`${point.label}: saldo ${money.format(point.balance)}`} />
+              <span className={`balance-bar ${point.balance < 0 ? 'negative' : 'positive'}`} style={point.balance < 0 ? { height: `${height}%`, top: '50%' } : { height: `${height}%`, bottom: '50%' }} title={`${point.label}: saldo ${money.format(point.balance)}`} />
             </div>
             <span className="chart-month">{point.label}</span>
           </div>;
@@ -681,13 +630,13 @@ export default function Home() {
         <Brand />
         <div className="side-label">MENU PRINCIPAL</div>
         <nav className="side-nav" aria-label="Navegação principal">
-          <a className="side-link active" href="#visao-geral" title="Visão geral"><Icon name="grid" />Visão geral</a>
-          <a className="side-link" href="#movimentacoes" title="Movimentações"><Icon name="receipt" />Movimentações</a>
-          <button className="side-link" title="Importar CSV" onClick={() => requireAccount('importar')}><Icon name="upload" />Importar CSV</button>
+          <a className="side-link active" href="#visao-geral" title="Visão geral"><Icon name="grid" /><span className="nav-label">Visão geral</span><span className="nav-label-mobile">Resumo</span></a>
+          <a className="side-link" href="#movimentacoes" title="Movimentações"><Icon name="receipt" /><span className="nav-label">Movimentações</span><span className="nav-label-mobile">Extrato</span></a>
+          <button className="side-link" title="Importar CSV" onClick={() => requireAccount('importar')}><Icon name="upload" /><span className="nav-label">Importar CSV</span><span className="nav-label-mobile">Importar</span></button>
           <div className="side-label side-label-spaced">PLANEJAMENTO</div>
-          <a className="side-link" href="#orcamentos" title="Orçamentos"><Icon name="target" />Orçamentos</a>
-          <a className="side-link" href="#metas" title="Metas de economia"><Icon name="sparkle" />Metas de economia</a>
-          <a className="side-link" href="#recorrencias" title="Recorrências"><Icon name="receipt" />Recorrências</a>
+          <a className="side-link" href="#orcamentos" title="Orçamentos"><Icon name="target" /><span className="nav-label">Orçamentos</span><span className="nav-label-mobile">Limites</span></a>
+          <a className="side-link" href="#metas" title="Metas de economia"><Icon name="sparkle" /><span className="nav-label">Metas de economia</span><span className="nav-label-mobile">Metas</span></a>
+          <a className="side-link" href="#recorrencias" title="Recorrências"><Icon name="receipt" /><span className="nav-label">Recorrências</span><span className="nav-label-mobile">Mensais</span></a>
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><div className="help-icon"><Icon name="help" size={17} /></div><strong>Um passo de cada vez</strong><p>Pequenas escolhas também constroem grandes planos.</p><a href="#movimentacoes">Ver movimentações <Icon name="chevron" size={14} /></a></div>
@@ -790,7 +739,7 @@ export default function Home() {
             {insights.length ? <div className="conclusion-list">{insights.slice(0, 5).map((insight, index) => <article className="conclusion-item" key={insight.label}><span className="conclusion-index">{String(index + 1).padStart(2, '0')}</span><div><strong>{insight.label}</strong><p>{insight.text}</p></div></article>)}</div> : <div className="planning-empty">Registre movimentações para gerar conclusões. Nenhum padrão é exibido sem dados suficientes.</div>}
             {insights.length > 0 && insights.length < 3 && <p className="conclusion-caveat">Há poucos registros para produzir três conclusões sem extrapolar os dados.</p>}
           </section>
-          <footer className="app-footer"><span>CoinPulse · Clareza para suas finanças</span><span>Seus dados são privados e isolados por conta.</span></footer>
+          <footer className="app-footer"><span>Gestão Finance · Clareza para suas finanças</span><span>Seus dados são privados e isolados por conta.</span></footer>
         </div>
       </main>
 

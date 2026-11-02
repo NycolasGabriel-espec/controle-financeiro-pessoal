@@ -1,0 +1,21 @@
+@layer theme, base, components, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* Keep the app's existing reset; shared UI utilities use the same brand tokens. */
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--text);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--text);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--on-primary);
+  --color-secondary: var(--surface-elevated);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--surface-elevated);
+  --color-muted-foreground: var(--text-muted);
+  --color-border: var(--border);
+  --color-input: var(--border-hover);
+  --color-ring: var(--primary);
+  --font-sans: var(--font-body);
+}
