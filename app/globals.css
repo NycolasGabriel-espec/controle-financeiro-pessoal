@@ -153,13 +153,13 @@ a { color: inherit; text-decoration: none; }
 .page-heading h1 { margin: 7px 0 4px; font-family: var(--font-display); font-size: 27px; font-weight: 700; letter-spacing: -1.1px; }
 .page-heading p { margin: 0; color: var(--text-muted); font-size: 11px; }
 .heading-actions { display: flex; align-items: center; gap: 9px; }
-.month-control { display: inline-flex; align-items: center; gap: 2px; padding: 0 3px; border: 1px solid var(--border); border-radius: 8px; background: white; }
+.month-control { display: inline-flex; align-items: center; gap: 2px; padding: 0 3px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .month-nav-button { width: 30px; height: 36px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 6px; color: var(--text-muted); background: transparent; cursor: pointer; }
-.month-nav-button:hover { color: var(--text); background: var(--surface); }
+.month-nav-button:hover { color: var(--text); background: var(--surface-elevated); }
 .month-nav-button:focus-visible { outline: 2px solid var(--success); outline-offset: 1px; }
 .month-select { height: 38px; display: inline-flex; align-items: center; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: white; }
 .month-control .month-select { border: 0; background: transparent; }
-.month-select input { max-width: 132px; border: 0; outline: 0; color: var(--text); background: transparent; font-size: 10px; cursor: pointer; }
+.month-select input { max-width: 132px; border: 0; outline: 0; color: var(--text); color-scheme: dark; background: transparent; font-size: 10px; cursor: pointer; }
 .demo-notice { min-height: 36px; display: flex; align-items: center; gap: 9px; margin-bottom: 14px; padding: 7px 11px; border: 1px solid var(--border); border-radius: 7px; color: var(--text); background: rgba(255,255,255,.72); font-size: 9px; }
 .demo-badge { padding: 3px 5px; border-radius: 4px; color: var(--success); background: var(--surface); font-size: 7px; font-weight: 700; letter-spacing: .7px; }
 .demo-notice button { margin-left: auto; padding: 5px 8px; border: 0; border-radius: 5px; color: var(--success); background: var(--surface); font-size: 9px; font-weight: 600; cursor: pointer; }
