@@ -1,9 +1,9 @@
-# CoinPulse
+# Gestão Finance
 Electric, dark-mode, real-time energy for the decentralized frontier.
 
 ## Overview
 
-CoinPulse is a high-intensity design system built for cryptocurrency trading platforms and DeFi applications. It thrives in permanent dark mode, using electric blues, vivid limes, and warm ambers to convey real-time market energy. Every element is optimized for data density, scanning speed, and split-second decision-making. The system treats precision and legibility as non-negotiable in volatile environments.
+Gestão Finance is a high-intensity design system built for cryptocurrency trading platforms and DeFi applications. It thrives in permanent dark mode, using electric blues, vivid limes, and warm ambers to convey real-time market energy. Every element is optimized for data density, scanning speed, and split-second decision-making. The system treats precision and legibility as non-negotiable in volatile environments.
 
 ## Colors
 

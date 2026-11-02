@@ -57,6 +57,12 @@ O README de planejamento propõe Python, Pandas, Psycopg e FastAPI. Esta versão
 
 ## Executar localmente
 
+O login usa o componente `components/ui/space-login.tsx`, adaptado ao tema grafite da Gestão Finance. Componentes reutilizáveis ficam em `components/ui`, com o alias `@/components/ui`; `components.json` mantém essa estrutura para integrações com shadcn. O projeto oferece TypeScript para os novos componentes e mantém os módulos JavaScript existentes.
+
+Tailwind é configurado em `postcss.config.mjs` e `app/tailwind.css`, que compartilha os tokens do projeto. O reset global existente é preservado. Os estilos visuais do login ficam nos CSS Modules próximos aos componentes. `npm ci` instala TypeScript, Tailwind, Framer Motion, Lucide e as funções de classes; não é necessário executar uma configuração adicional. Para validar os tipos, execute `npm run typecheck`.
+
+Referências de configuração: [Tailwind para Next.js](https://tailwindcss.com/docs/installation/framework-guides/nextjs) e [estrutura manual do shadcn](https://ui.shadcn.com/docs/installation/manual).
+
 Requisitos: Node.js 20.9 ou superior e um projeto Supabase.
 
 1. Instale as dependências:
