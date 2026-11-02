@@ -8,6 +8,8 @@ O MVP e as evoluções funcionais deste documento estão implementados: moviment
 
 ## Funcionalidades
 
+- Dashboard animado com saldo em destaque, transições de valores, gráficos interativos e navegação responsiva. As animações respeitam a preferência por movimento reduzido; a direção e a validação estão em [`docs/dashboard-animado.md`](docs/dashboard-animado.md).
+
 - Criar, editar e excluir receitas e despesas.
 - Importar CSV em UTF-8, validar linhas e revisar erros e possíveis duplicatas antes de confirmar. Duplicatas não são excluídas automaticamente.
 - Filtrar por mês, tipo, categoria e texto. Os indicadores, gráficos e exportação refletem tipo, categoria e texto selecionados; os valores mensais usam o mês escolhido.

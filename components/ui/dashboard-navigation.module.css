@@ -1,0 +1,10 @@
+.nav { position: relative; isolation: isolate; }
+.link { position: relative; isolation: isolate; }
+.link > :not(.activePill) { position: relative; z-index: 1; }
+.activePill { position: absolute; inset: -1px; z-index: 0; border: 1px solid #363a41; border-radius: var(--radius-sm); background: #25282d; pointer-events: none; }
+.selected { color: var(--text); font-weight: 500; }
+.selected svg { color: var(--text); }
+.selected:hover { background: transparent; }
+@media (max-width: 560px) {
+  .activePill { border-radius: 5px; }
+}

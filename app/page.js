@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { expenseCategories, incomeCategories, suggestCategory } from '../lib/categories';
 import { SpaceLogin } from '@/components/ui/space-login';
+import { AnimatedNumber, AnimatedPanel, AnimatedProgress, SavingsRing } from '@/components/ui/dashboard-motion';
+import { CashFlowChart, BalanceTrendChart } from '@/components/ui/finance-charts';
+import { DashboardNavigation } from '@/components/ui/dashboard-navigation';
 
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const shortMoney = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const monthName = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
 const dateName = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' });
 
@@ -125,6 +127,7 @@ function Icon({ name, size = 19, strokeWidth = 1.8 }) {
     pencil: <><path d="m4 16.5-.8 4.3 4.3-.8L19.8 7.7a2.3 2.3 0 0 0-3.2-3.2z" /><path d="m14.8 6.5 2.7 2.7" /></>,
     trash: <><path d="M4 7h16M10 11v6m4-6v6M5 7l1 13h12l1-13M9 7V4h6v3" /></>,
     lock: <><rect x="5" y="10" width="14" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3" /></>,
+    wallet: <><path d="M20 8V5a2 2 0 0 0-2-2H6a3 3 0 0 0 0 6h14v11H6a3 3 0 0 1-3-3V6" /><path d="M20 12h-5v5h5M17 14.5h.01" /></>,
   };
   return <svg {...common}>{shapes[name] || shapes.grid}</svg>;
 }
@@ -159,79 +162,6 @@ function Modal({ title, onClose, children, wide = false }) {
         <div className="modal-head"><div><div className="eyebrow">CONTROLE FINANCEIRO</div><h2 id="modal-title">{title}</h2></div><button className="icon-button" aria-label="Fechar" onClick={onClose}><Icon name="close" /></button></div>
         {children}
       </section>
-    </div>
-  );
-}
-
-function CashFlowChart({ rows, month }) {
-  const points = useMemo(() => {
-    const [year, monthNumber] = month.split('-').map(Number);
-    return Array.from({ length: 6 }, (_, index) => {
-      const date = new Date(year, monthNumber - 6 + index, 1);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const monthRows = rows.filter(row => String(row.data).slice(0, 7) === key);
-      return {
-        key,
-        label: new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(date).replace('.', ''),
-        income: monthRows.filter(row => row.tipo === 'receita').reduce((sum, row) => sum + Number(row.valor), 0),
-        expense: monthRows.filter(row => row.tipo === 'despesa').reduce((sum, row) => sum + Number(row.valor), 0),
-      };
-    });
-  }, [rows, month]);
-
-  const max = Math.max(1, ...points.flatMap(point => [point.income, point.expense]));
-  const hasData = points.some(point => point.income || point.expense);
-
-  return (
-    <div className="chart-wrap">
-      <div className="chart-legend"><span><i className="legend-income" /> Receitas</span><span><i className="legend-expense" /> Despesas</span><span className="chart-unit">BRL</span></div>
-      <div className="chart-columns" role="img" aria-label="Evolução mensal de receitas e despesas">
-        {points.map(point => <div className="chart-column" key={point.key}>
-          <div className="chart-bar-pair"><span className="chart-bar income-bar" style={{ height: `${point.income ? Math.max(3, point.income / max * 100) : 0}%` }} title={`${point.label}: receitas ${money.format(point.income)}`} /><span className="chart-bar expense-bar" style={{ height: `${point.expense ? Math.max(3, point.expense / max * 100) : 0}%` }} title={`${point.label}: despesas ${money.format(point.expense)}`} /></div>
-          <span className="chart-month">{point.label}</span>
-        </div>)}
-      </div>
-      {!hasData && <div className="chart-empty">Os valores dos últimos meses aparecem aqui.</div>}
-    </div>
-  );
-}
-
-function BalanceTrendChart({ rows, month }) {
-  const points = useMemo(() => {
-    const [year, monthNumber] = month.split('-').map(Number);
-    return Array.from({ length: 6 }, (_, index) => {
-      const date = new Date(year, monthNumber - 6 + index, 1);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const monthRows = rows.filter(row => String(row.data).slice(0, 7) === key);
-      const income = monthRows.filter(row => row.tipo === 'receita').reduce((sum, row) => sum + Number(row.valor), 0);
-      const expense = monthRows.filter(row => row.tipo === 'despesa').reduce((sum, row) => sum + Number(row.valor), 0);
-      return {
-        key,
-        label: new Intl.DateTimeFormat('pt-BR', { month: 'short' }).format(date).replace('.', ''),
-        balance: income - expense,
-      };
-    });
-  }, [rows, month]);
-
-  const max = Math.max(1, ...points.map(point => Math.abs(point.balance)));
-  const hasData = points.some(point => point.balance !== 0);
-
-  return (
-    <div className="balance-chart">
-      <div className="chart-legend"><span><i className="legend-balance-positive" /> Saldo positivo</span><span><i className="legend-balance-negative" /> Saldo negativo</span><span className="chart-unit">BRL</span></div>
-      <div className="balance-chart-columns" role="img" aria-label="Evolução mensal do saldo">
-        <span className="balance-zero-line" />
-        {points.map(point => {
-          const height = point.balance ? Math.max(3, Math.abs(point.balance) / max * 46) : 0;
-          return <div className="balance-chart-column" key={point.key}>
-            <div className="balance-chart-track">
-              <span className={`balance-bar ${point.balance < 0 ? 'negative' : 'positive'}`} style={point.balance < 0 ? { height: `${height}%`, top: '50%' } : { height: `${height}%`, bottom: '50%' }} title={`${point.label}: saldo ${money.format(point.balance)}`} />
-            </div>
-            <span className="chart-month">{point.label}</span>
-          </div>;
-        })}
-      </div>
-      {!hasData && <div className="chart-empty">Os saldos mensais aparecem depois dos primeiros registros.</div>}
     </div>
   );
 }
@@ -617,7 +547,8 @@ export default function Home() {
     </>;
   }
 
-  const topCategory = categoryRows[0];
+  const hasActiveFilters = kindFilter !== 'todos' || categoryFilter !== 'todas' || search.trim() !== '';
+  function clearFilters() { setKindFilter('todos'); setCategoryFilter('todas'); setSearch(''); }
   const initials = previewMode ? 'D' : (user?.email || 'U').slice(0, 1).toUpperCase();
   function requireAccount(action) {
     if (previewMode) setToast(`Crie uma conta para ${action} suas movimentações.`);
@@ -629,15 +560,7 @@ export default function Home() {
       <aside className="sidebar">
         <Brand />
         <div className="side-label">MENU PRINCIPAL</div>
-        <nav className="side-nav" aria-label="Navegação principal">
-          <a className="side-link active" href="#visao-geral" title="Visão geral"><Icon name="grid" /><span className="nav-label">Visão geral</span><span className="nav-label-mobile">Resumo</span></a>
-          <a className="side-link" href="#movimentacoes" title="Movimentações"><Icon name="receipt" /><span className="nav-label">Movimentações</span><span className="nav-label-mobile">Extrato</span></a>
-          <button className="side-link" title="Importar CSV" onClick={() => requireAccount('importar')}><Icon name="upload" /><span className="nav-label">Importar CSV</span><span className="nav-label-mobile">Importar</span></button>
-          <div className="side-label side-label-spaced">PLANEJAMENTO</div>
-          <a className="side-link" href="#orcamentos" title="Orçamentos"><Icon name="target" /><span className="nav-label">Orçamentos</span><span className="nav-label-mobile">Limites</span></a>
-          <a className="side-link" href="#metas" title="Metas de economia"><Icon name="sparkle" /><span className="nav-label">Metas de economia</span><span className="nav-label-mobile">Metas</span></a>
-          <a className="side-link" href="#recorrencias" title="Recorrências"><Icon name="receipt" /><span className="nav-label">Recorrências</span><span className="nav-label-mobile">Mensais</span></a>
-        </nav>
+        <DashboardNavigation onImport={() => requireAccount('importar')} />
         <div className="sidebar-bottom">
           <div className="help-card"><div className="help-icon"><Icon name="help" size={17} /></div><strong>Um passo de cada vez</strong><p>Pequenas escolhas também constroem grandes planos.</p><a href="#movimentacoes">Ver movimentações <Icon name="chevron" size={14} /></a></div>
           <div className="user-row"><div className="avatar">{initials}</div><div className="user-info"><strong>{previewMode ? 'Demonstração' : user.email?.split('@')[0] || 'Minha conta'}</strong><span>{previewMode ? 'Acesso somente leitura' : 'Conta pessoal'}</span></div><button className="icon-button logout-button" aria-label={previewMode ? 'Sair da demonstração' : 'Sair da conta'} title={previewMode ? 'Sair da demonstração' : 'Sair da conta'} onClick={signOut}><Icon name="logout" size={17} /></button></div>
@@ -661,56 +584,58 @@ export default function Home() {
           <div className={`demo-notice ${previewMode ? 'preview-notice' : ''}`}><span className="demo-badge">{previewMode ? 'AMOSTRA' : 'PRIVADO'}</span><span>{previewMode ? 'Dados fictícios para explorar a dashboard; nenhuma movimentação será salva.' : 'Seus registros ficam visíveis apenas na sua conta. Use a amostra fictícia para explorar a dashboard.'}</span>{!previewMode && <button onClick={loadDemo} disabled={busy || rows.length > 0}>{busy ? 'Carregando…' : rows.length ? 'Amostra já carregada' : 'Carregar amostra'}</button>}</div>
           <div className={`period-note ${monthIsPartial || monthIsFuture ? 'period-note-warning' : ''}`}>{periodMessage}{monthIsPartial && ' · Comparações mensais usam o acumulado até hoje.'}</div>
 
+          {hasActiveFilters && <div className="active-filters" role="status"><Icon name="filter" size={14} /><span>Visão filtrada{kindFilter !== 'todos' && ` · ${kindFilter === 'receita' ? 'Receitas' : 'Despesas'}`}{categoryFilter !== 'todas' && ` · ${categoryFilter}`}{search.trim() && ` · “${search.trim()}”`}</span><button onClick={clearFilters}>Limpar filtros <Icon name="close" size={13} /></button></div>}
+
           <section className="metric-grid" aria-label="Indicadores financeiros">
-            <MetricCard title="Receitas" value={money.format(income)} valueTone={income > 0 ? 'positive' : ''} note={`Em ${monthLabel(month)}`} icon="arrowUp" tone="green" loading={loading} />
-            <MetricCard title="Despesas" value={money.format(expense)} valueTone={expense > 0 ? 'negative' : ''} note={expenseChange === null ? `Variação indisponível: ${expenseChangeUnavailable}` : `${percent(Math.abs(expenseChange))} ${expenseChange > 0 ? 'acima' : 'abaixo'} de ${monthLabel(previousMonth)}${monthIsPartial ? ' · mês parcial' : ''}`} icon="arrowDown" tone="amber" trend={expenseChange} loading={loading} />
-            <MetricCard title="Saldo do período" value={money.format(balance)} valueTone={balance < 0 ? 'negative' : balance > 0 ? 'positive' : ''} note="Receitas menos despesas" icon="sparkle" tone="dark" loading={loading} />
-            <MetricCard title="Taxa de economia" value={economyRate === null ? '—' : percent(economyRate)} valueTone={economyRate < 0 ? 'negative' : economyRate > 0 ? 'positive' : ''} note={economyRate === null ? 'Indisponível: sem receitas no período' : 'Do que entrou, ficou com você'} icon="target" tone="lilac" loading={loading} />
-            <MetricCard title="Renda comprometida" value={committedRate === null ? '—' : percent(committedRate)} valueTone={committedRate > 100 ? 'negative' : ''} note={committedRate === null ? 'Indisponível: sem receitas no período' : 'Da renda usada em despesas'} icon="receipt" tone="dark" loading={loading} />
+            <MetricCard title="Saldo do período" value={balance} valueTone={balance < 0 ? 'negative' : ''} note="Receitas menos despesas do mês" icon="wallet" tone="dark" featured economyRate={economyRate} income={income} expense={expense} loading={loading} />
+            <MetricCard title="Receitas" value={income} note={`Em ${monthLabel(month)}`} icon="arrowUp" tone="green" delay={0.04} loading={loading} />
+            <MetricCard title="Despesas" value={expense} note={expenseChange === null ? `Variação indisponível: ${expenseChangeUnavailable}` : `${percent(Math.abs(expenseChange))} ${expenseChange > 0 ? 'acima' : 'abaixo'} de ${monthLabel(previousMonth)}${monthIsPartial ? ' · mês parcial' : ''}`} icon="arrowDown" tone="amber" trend={expenseChange} delay={0.08} loading={loading} />
+            <MetricCard title="Taxa de economia" value={economyRate} format="percent" valueTone={economyRate < 0 ? 'negative' : ''} note={economyRate === null ? 'Indisponível: sem receitas no período' : 'Do que entrou, ficou com você'} icon="target" tone="green" delay={0.12} loading={loading} />
+            <MetricCard title="Renda comprometida" value={committedRate} format="percent" valueTone={committedRate > 100 ? 'negative' : ''} note={committedRate === null ? 'Indisponível: sem receitas no período' : 'Da renda usada em despesas'} icon="receipt" tone="dark" delay={0.16} loading={loading} />
           </section>
 
           <section className="insights-grid" aria-label="Análise do período">
-            <article className="panel flow-panel">
+            <AnimatedPanel className="panel flow-panel">
               <div className="panel-heading"><div><div className="eyebrow">MOVIMENTO AO LONGO DO TEMPO</div><h2>Fluxo financeiro</h2><p>Receitas e despesas por mês</p></div><span className="panel-period">6 MESES</span></div>
               <CashFlowChart rows={matchingRows} month={month} />
-            </article>
-            <article className="panel category-panel">
-              <div className="panel-heading"><div><div className="eyebrow">PARA ONDE VAI</div><h2>Despesas por categoria</h2><p>{monthLabel(month)}</p></div><button className="dots-button" aria-label="Mais opções" onClick={() => setCategoryFilter('todas')}>···</button></div>
-              {categoryRows.length ? <div className="category-list">{categoryRows.map(category => <div className="category-item" key={category.name}><div className="category-line"><span className="category-name"><i style={{ background: category.color }} />{category.name}</span><span className="category-value">{money.format(category.value)} <small>{percent(category.share)}</small></span></div><div className="category-track"><span style={{ width: `${expense ? Math.max(4, category.share) : 0}%`, background: category.color }} /></div></div>)}</div> : <div className="empty-chart">As categorias aparecem depois das primeiras despesas.</div>}
+            </AnimatedPanel>
+            <AnimatedPanel className="panel category-panel">
+              <div className="panel-heading"><div><div className="eyebrow">PARA ONDE VAI</div><h2>Despesas por categoria</h2><p>{monthLabel(month)}</p></div><button className="icon-button category-reset" aria-label="Limpar filtro de categoria" title="Limpar filtro de categoria" disabled={categoryFilter === 'todas'} onClick={() => setCategoryFilter('todas')}><Icon name="filter" size={16} /></button></div>
+              {categoryRows.length ? <div className="category-list">{categoryRows.map(category => <button className="category-item" key={category.name} onClick={() => setCategoryFilter(category.name)} aria-pressed={categoryFilter === category.name} title={`Filtrar por ${category.name}`}><span className="category-line"><span className="category-name"><i style={{ background: category.color }} />{category.name}</span><span className="category-value">{money.format(category.value)} <small>{percent(category.share)}</small></span></span><span className="category-track"><AnimatedProgress value={category.share} color={category.color} /></span></button>)}</div> : <div className="empty-chart">As categorias aparecem depois das primeiras despesas.</div>}
               <div className="category-total"><span>Total de despesas</span><strong>{money.format(expense)}</strong></div>
-            </article>
+            </AnimatedPanel>
           </section>
 
-          <section className="panel balance-panel">
+          <AnimatedPanel as="section" className="panel balance-panel">
             <div className="panel-heading"><div><div className="eyebrow">SALDO MENSAL</div><h2>Evolução do saldo</h2><p>Receitas menos despesas, mês a mês</p></div><span className="panel-period">6 MESES</span></div>
             <BalanceTrendChart rows={matchingRows} month={month} />
-          </section>
+          </AnimatedPanel>
 
           <section className="planning-grid" aria-label="Planejamento financeiro">
-            <article className="panel planning-panel" id="orcamentos">
+            <AnimatedPanel className="panel planning-panel" id="orcamentos">
               <div className="panel-heading"><div><div className="eyebrow">LIMITE DE GASTOS</div><h2>Orçamentos</h2><p>{monthLabel(month)} · filtros ativos</p></div><button className="button button-outline compact-button" onClick={() => openPlanningEditor('budget')}>Definir limite</button></div>
               {budgetProgress.length ? <div className="planning-list">{budgetProgress.map(item => <div className="planning-item" key={item.id}>
                 <div className="planning-item-head"><span>{item.categoria}</span><strong>{money.format(item.spent)} <small>de {money.format(Number(item.limite))}</small></strong></div>
-                <div className={`planning-track ${item.percentage > 100 ? 'over-limit' : ''}`}><span style={{ width: `${Math.min(100, item.percentage)}%` }} /></div>
+                <div className={`planning-track ${item.percentage > 100 ? 'over-limit' : ''}`}><AnimatedProgress value={item.percentage} /></div>
                 <div className="planning-item-foot"><span>{percent(item.percentage)} utilizado</span><span>{item.percentage > 100 ? `Excedido em ${money.format(item.spent - Number(item.limite))}` : `${money.format(Number(item.limite) - item.spent)} restantes`}</span></div>
                 {!previewMode && <div className="planning-item-actions"><button className="text-action" onClick={() => openPlanningEditor('budget', item)}>Editar</button><button className="text-action destructive-text" onClick={() => deleteBudget(item.id)}>Excluir</button></div>}
               </div>)}</div> : <div className="planning-empty">Defina limites mensais por categoria para acompanhar seus gastos.</div>}
-            </article>
+            </AnimatedPanel>
 
-            <article className="panel planning-panel" id="metas">
+            <AnimatedPanel className="panel planning-panel" id="metas">
               <div className="panel-heading"><div><div className="eyebrow">OBJETIVOS DE LONGO PRAZO</div><h2>Metas de economia</h2><p>Acompanhe o valor acumulado</p></div><button className="button button-outline compact-button" onClick={() => openPlanningEditor('goal')}>Nova meta</button></div>
               {goalRows.length ? <div className="planning-list">{goalRows.map(goal => {
                 const goalPercent = Number(goal.valor_alvo) ? Number(goal.valor_atual) / Number(goal.valor_alvo) * 100 : 0;
                 return <div className="planning-item" key={goal.id}>
                   <div className="planning-item-head"><span>{goal.nome}</span><strong>{money.format(Number(goal.valor_atual))} <small>de {money.format(Number(goal.valor_alvo))}</small></strong></div>
-                  <div className="planning-track goal-track"><span style={{ width: `${Math.min(100, goalPercent)}%` }} /></div>
+                  <div className="planning-track goal-track"><AnimatedProgress value={goalPercent} /></div>
                   <div className="planning-item-foot"><span>{percent(goalPercent)} alcançado</span><span>{goal.data_limite ? `Prazo: ${dateName.format(new Date(`${goal.data_limite}T12:00:00`))} ${goal.data_limite.slice(0, 4)}` : 'Sem prazo definido'}</span></div>
                   {!previewMode && <div className="planning-item-actions"><button className="text-action" onClick={() => openPlanningEditor('goal', goal)}>Atualizar progresso</button><button className="text-action destructive-text" onClick={() => deleteGoal(goal.id)}>Excluir</button></div>}
                 </div>;
               })}</div> : <div className="planning-empty">Crie uma meta e atualize o valor guardado para acompanhar o progresso.</div>}
-            </article>
+            </AnimatedPanel>
 
-            <article className="panel planning-panel recurring-panel" id="recorrencias">
+            <AnimatedPanel className="panel planning-panel recurring-panel" id="recorrencias">
               <div className="panel-heading"><div><div className="eyebrow">DESPESAS PROGRAMADAS</div><h2>Recorrências mensais</h2><p>Registre despesas recorrentes no mês selecionado</p></div><button className="button button-outline compact-button" onClick={() => openPlanningEditor('recurring')}>Nova recorrência</button></div>
               {recurringRows.length ? <div className="recurring-list">{recurringRows.map(item => {
                 const recurringDate = dateForMonthDay(month, item.dia_vencimento);
@@ -720,10 +645,10 @@ export default function Home() {
                 <strong className="recurring-value">{money.format(Number(item.valor))}</strong>
                 <div className="recurring-actions"><button className="button button-outline compact-button" onClick={() => launchRecurring(item)} disabled={!item.ativo || alreadyLaunched || busy || previewMode}>{previewMode ? 'Somente leitura' : alreadyLaunched ? 'Já lançada neste mês' : 'Lançar no mês'}</button>{!previewMode && <><button className="text-action" onClick={() => openPlanningEditor('recurring', item)}>Editar</button><button className="text-action" onClick={() => toggleRecurring(item)}>{item.ativo ? 'Pausar' : 'Ativar'}</button></>}</div>
               </div>})}</div> : <div className="planning-empty">Cadastre despesas mensais para lançá-las com a data de vencimento.</div>}
-            </article>
+            </AnimatedPanel>
           </section>
 
-          <section className="panel transactions-panel" id="movimentacoes">
+          <AnimatedPanel as="section" className="panel transactions-panel" id="movimentacoes">
             <div className="panel-heading transaction-heading"><div><div className="eyebrow">ACOMPANHAMENTO DE PERTO</div><h2>Movimentações</h2><p>{currentRows.length} {currentRows.length === 1 ? 'registro' : 'registros'} em {monthLabel(month)}</p></div><div className="table-actions"><button className="button button-outline export-button" onClick={() => exportCsv(visibleRows)} disabled={!visibleRows.length}><Icon name="download" size={16} />Exportar CSV</button></div></div>
             <div className="table-toolbar"><label className="search-field"><Icon name="search" size={17} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar movimentação" aria-label="Buscar movimentação" /></label><label className="filter-select"><Icon name="filter" size={16} /><select value={kindFilter} onChange={event => setKindFilter(event.target.value)} aria-label="Filtrar tipo"><option value="todos">Todos os tipos</option><option value="receita">Receitas</option><option value="despesa">Despesas</option></select></label><label className="filter-select category-filter"><select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)} aria-label="Filtrar categoria"><option value="todas">Todas as categorias</option>{[...new Set(rows.map(row => row.categoria))].sort().map(category => <option key={category}>{category}</option>)}</select></label></div>
             <div className="table-scroll"><table><thead><tr><th>DESCRIÇÃO</th><th>DATA</th><th>CATEGORIA</th><th>TIPO</th><th className="amount-head">VALOR</th><th aria-label="Ações" /></tr></thead><tbody>
@@ -732,13 +657,13 @@ export default function Home() {
               {loading && <tr><td colSpan="6"><div className="table-loading">Carregando seus registros…</div></td></tr>}
             </tbody></table></div>
             {visibleRows.length > 8 && <div className="table-footer">Mostrando 8 de {visibleRows.length} registros<span>Use os filtros para refinar a lista.</span></div>}
-          </section>
+          </AnimatedPanel>
 
-          <section className="panel conclusions-panel">
+          <AnimatedPanel as="section" className="panel conclusions-panel">
             <div className="panel-heading"><div><div className="eyebrow">LEITURAS BASEADAS NOS SEUS REGISTROS</div><h2>Conclusões do período</h2><p>{periodMessage}. Valores refletem os filtros selecionados.</p></div><span className="panel-period">{Math.min(insights.length, 5)} PONTOS</span></div>
-            {insights.length ? <div className="conclusion-list">{insights.slice(0, 5).map((insight, index) => <article className="conclusion-item" key={insight.label}><span className="conclusion-index">{String(index + 1).padStart(2, '0')}</span><div><strong>{insight.label}</strong><p>{insight.text}</p></div></article>)}</div> : <div className="planning-empty">Registre movimentações para gerar conclusões. Nenhum padrão é exibido sem dados suficientes.</div>}
+            {insights.length ? <div className="conclusion-list">{insights.slice(0, 5).map((insight, index) => <AnimatedPanel className="conclusion-item" key={insight.label}><span className="conclusion-index">{String(index + 1).padStart(2, '0')}</span><div><strong>{insight.label}</strong><p>{insight.text}</p></div></AnimatedPanel>)}</div> : <div className="planning-empty">Registre movimentações para gerar conclusões. Nenhum padrão é exibido sem dados suficientes.</div>}
             {insights.length > 0 && insights.length < 3 && <p className="conclusion-caveat">Há poucos registros para produzir três conclusões sem extrapolar os dados.</p>}
-          </section>
+          </AnimatedPanel>
           <footer className="app-footer"><span>Gestão Finance · Clareza para suas finanças</span><span>Seus dados são privados e isolados por conta.</span></footer>
         </div>
       </main>
@@ -791,7 +716,16 @@ export default function Home() {
   );
 }
 
-function MetricCard({ title, value, valueTone = '', note, icon, tone, trend, loading }) {
+function MetricCard({ title, value, format = 'currency', valueTone = '', note, icon, tone, trend, loading, featured = false, economyRate, income = 0, expense = 0, delay = 0 }) {
   const positive = trend !== undefined && trend !== null && trend <= 0;
-  return <article className="metric-card"><div className="metric-top"><span>{title}</span><span className={`metric-icon ${tone}`}><Icon name={icon} size={17} /></span></div><strong className={`metric-value ${valueTone ? `${valueTone}-value` : ''}`}>{loading ? <span className="loading-skeleton" role="status" aria-label="Carregando indicador" /> : value}</strong><div className="metric-note">{trend !== undefined && trend !== null && !loading && <span className={`trend-dot ${positive ? 'good' : 'bad'}`}>{positive ? '↓' : '↑'}</span>}{loading ? 'Carregando…' : note}</div><span className={`metric-accent ${tone}`} /></article>;
+  const spentShare = income > 0 ? Math.min(100, expense / income * 100) : 0;
+  return <AnimatedPanel className={`metric-card ${featured ? 'metric-featured' : ''}`} aria-label={title} delay={delay}>
+    <div className="metric-top"><span>{title}</span><span className={`metric-icon ${tone}`}><Icon name={icon} size={17} /></span></div>
+    <div className={featured ? 'featured-card-body' : undefined}>
+      <div><strong className={`metric-value ${valueTone ? `${valueTone}-value` : ''}`}>{loading ? <span className="loading-skeleton" role="status" aria-label="Carregando indicador" /> : <AnimatedNumber value={value} format={format} />}</strong>
+      <div className="metric-note">{trend !== undefined && trend !== null && !loading && <span className={`trend-dot ${positive ? 'good' : 'bad'}`}>{positive ? '↓' : '↑'}</span>}{loading ? 'Carregando…' : note}</div></div>
+      {featured && !loading && <SavingsRing rate={economyRate} />}
+    </div>
+    {featured && <div className="balance-allocation"><div className="allocation-heading"><span>Distribuição da receita</span><Icon name="arrowUp" size={13} /></div><div className={`allocation-track ${loading || income <= 0 ? 'allocation-unavailable' : ''}`} aria-hidden="true"><AnimatedProgress value={loading ? 0 : spentShare} /></div><div className="allocation-legend"><span><i />Despesas <strong>{loading || income <= 0 ? '—' : percent(expense / income * 100)}</strong></span><span><i />Economia <strong>{loading || economyRate === null ? '—' : percent(economyRate)}</strong></span></div></div>}
+  </AnimatedPanel>;
 }
