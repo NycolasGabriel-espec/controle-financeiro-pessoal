@@ -672,13 +672,13 @@ export default function Home() {
         <Brand />
         <div className="side-label">MENU PRINCIPAL</div>
         <nav className="side-nav" aria-label="Navegação principal">
-          <a className="side-link active" href="#visao-geral"><Icon name="grid" />Visão geral</a>
-          <a className="side-link" href="#movimentacoes"><Icon name="receipt" />Movimentações</a>
-          <button className="side-link" onClick={() => requireAccount('importar')}><Icon name="upload" />Importar CSV</button>
+          <a className="side-link active" href="#visao-geral" title="Visão geral"><Icon name="grid" />Visão geral</a>
+          <a className="side-link" href="#movimentacoes" title="Movimentações"><Icon name="receipt" />Movimentações</a>
+          <button className="side-link" title="Importar CSV" onClick={() => requireAccount('importar')}><Icon name="upload" />Importar CSV</button>
           <div className="side-label side-label-spaced">PLANEJAMENTO</div>
-          <a className="side-link" href="#orcamentos"><Icon name="target" />Orçamentos</a>
-          <a className="side-link" href="#metas"><Icon name="sparkle" />Metas de economia</a>
-          <a className="side-link" href="#recorrencias"><Icon name="receipt" />Recorrências</a>
+          <a className="side-link" href="#orcamentos" title="Orçamentos"><Icon name="target" />Orçamentos</a>
+          <a className="side-link" href="#metas" title="Metas de economia"><Icon name="sparkle" />Metas de economia</a>
+          <a className="side-link" href="#recorrencias" title="Recorrências"><Icon name="receipt" />Recorrências</a>
         </nav>
         <div className="sidebar-bottom">
           <div className="help-card"><div className="help-icon"><Icon name="help" size={17} /></div><strong>Um passo de cada vez</strong><p>Pequenas escolhas também constroem grandes planos.</p><a href="#movimentacoes">Ver movimentações <Icon name="chevron" size={14} /></a></div>
