@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { expenseCategories, incomeCategories, suggestCategory } from '../lib/categories';
 
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const shortMoney = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 const monthName = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
 const dateName = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short' });
 
-const categories = ['Alimentação', 'Moradia', 'Transporte', 'Saúde', 'Lazer', 'Educação', 'Assinaturas', 'Salário', 'Freelance', 'Outros'];
 const categoryColors = ['#2563EB', '#84CC16', '#F59E0B', '#60A5FA', '#22C55E', '#A1A1AA', '#3B82F6'];
 
 const demoBudgets = [
@@ -88,22 +88,6 @@ function monthLabel(value) {
 function percent(value) {
   const sign = value < 0 ? '−' : '';
   return `${sign}${Math.abs(value).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
-}
-
-function suggestCategory(description) {
-  const text = description.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
-  const rules = [
-    [/salario|pagamento mensal/, 'Salário'],
-    [/freelance|cliente|projeto|consultoria/, 'Freelance'],
-    [/mercado|supermercado|restaurante|ifood|padaria|cafe|lanche|comida/, 'Alimentação'],
-    [/aluguel|condominio|iptu|energia|conta de luz|conta de agua|gas de cozinha|internet residencial/, 'Moradia'],
-    [/uber|taxi|onibus|metro|combustivel|gasolina|estacionamento/, 'Transporte'],
-    [/farmacia|medico|consulta|hospital|dentista|plano de saude|academia/, 'Saúde'],
-    [/netflix|streaming|assinatura|spotify|icloud/, 'Assinaturas'],
-    [/cinema|show|teatro|viagem|lazer|parque/, 'Lazer'],
-    [/curso|escola|faculdade|livro/, 'Educação'],
-  ];
-  return rules.find(([pattern]) => pattern.test(text))?.[1] || '';
 }
 
 function monthStart(value) {
@@ -378,11 +362,14 @@ export default function Home() {
   const [editing, setEditing] = useState(null);
   const [planningEditing, setPlanningEditing] = useState(null);
   const [categoryValue, setCategoryValue] = useState('');
-  const [suggestedCategory, setSuggestedCategory] = useState('');
+  const [movementType, setMovementType] = useState('despesa');
+  const [descriptionValue, setDescriptionValue] = useState('');
   const [importData, setImportData] = useState(null);
   const [toast, setToast] = useState('');
   const [busy, setBusy] = useState(false);
   const [dbError, setDbError] = useState('');
+  const movementCategories = movementType === 'receita' ? incomeCategories : expenseCategories;
+  const suggestedCategory = suggestCategory(descriptionValue, movementType);
 
   const loadRows = useCallback(async () => {
     if (!supabase) { setLoading(false); return; }
@@ -491,6 +478,28 @@ export default function Home() {
   const exceededBudget = budgetProgress.find(budget => budget.percentage > 100);
   if (exceededBudget) insights.push({ label: 'Orçamento', text: `${exceededBudget.categoria} ultrapassou o limite mensal em ${money.format(exceededBudget.spent - Number(exceededBudget.limite))}.` });
 
+  function openMovementEditor(record = null) {
+    setEditing(record);
+    setMovementType(record?.tipo || 'despesa');
+    setDescriptionValue(record?.descricao || '');
+    setCategoryValue(record?.categoria || '');
+    setModal('movement');
+  }
+
+  function closeMovementEditor() {
+    setModal('');
+    setEditing(null);
+    setMovementType('despesa');
+    setDescriptionValue('');
+    setCategoryValue('');
+  }
+
+  function changeMovementType(type) {
+    setMovementType(type);
+    const options = type === 'receita' ? incomeCategories : expenseCategories;
+    if (!options.includes(categoryValue)) setCategoryValue('');
+  }
+
   async function saveMovement(event) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -508,7 +517,7 @@ export default function Home() {
     const { error } = await query;
     setBusy(false);
     if (error) { setToast('Não foi possível salvar. Confira os campos e tente novamente.'); return; }
-    setModal(''); setEditing(null); setCategoryValue(''); setSuggestedCategory(''); setToast(editing ? 'Movimentação atualizada.' : 'Movimentação adicionada.');
+    closeMovementEditor(); setToast(editing ? 'Movimentação atualizada.' : 'Movimentação adicionada.');
     await loadRows();
   }
 
@@ -695,7 +704,7 @@ export default function Home() {
         <div className="content-wrap">
           <div className="page-heading">
             <div><div className="eyebrow">SUA VIDA FINANCEIRA, EM EQUILÍBRIO</div><h1>Visão geral</h1><p>Acompanhe o que entra, o que sai e o que fica.</p></div>
-            <div className="heading-actions"><div className="month-control" role="group" aria-label="Navegação mensal"><button type="button" className="month-nav-button" aria-label={`Ir para ${monthLabel(previousMonthOf(month))}`} title="Mês anterior" onClick={() => setMonth(previousMonthOf(month))}><Icon name="chevronLeft" size={17} /></button><label className="month-select"><span className="sr-only">Mês selecionado</span><input type="month" value={month} onChange={event => { if (event.target.value) setMonth(event.target.value); }} aria-label="Selecionar mês" /></label><button type="button" className="month-nav-button" aria-label={`Ir para ${monthLabel(nextMonthOf(month))}`} title="Próximo mês" onClick={() => setMonth(nextMonthOf(month))}><Icon name="chevron" size={17} /></button></div>{previewMode ? <button className="button button-primary" onClick={() => { setPreviewMode(false); setRows([]); setBudgetRows([]); setGoalRows([]); setRecurringRows([]); }}><Icon name="plus" size={17} />Criar conta para salvar</button> : <><button className="button button-outline" onClick={() => setModal('import')}><Icon name="upload" size={17} />Importar CSV</button><button className="button button-primary" onClick={() => { setEditing(null); setCategoryValue(''); setSuggestedCategory(''); setModal('movement'); }}><Icon name="plus" size={17} />Nova movimentação</button></>}</div>
+            <div className="heading-actions"><div className="month-control" role="group" aria-label="Navegação mensal"><button type="button" className="month-nav-button" aria-label={`Ir para ${monthLabel(previousMonthOf(month))}`} title="Mês anterior" onClick={() => setMonth(previousMonthOf(month))}><Icon name="chevronLeft" size={17} /></button><label className="month-select"><span className="sr-only">Mês selecionado</span><input type="month" value={month} onChange={event => { if (event.target.value) setMonth(event.target.value); }} aria-label="Selecionar mês" /></label><button type="button" className="month-nav-button" aria-label={`Ir para ${monthLabel(nextMonthOf(month))}`} title="Próximo mês" onClick={() => setMonth(nextMonthOf(month))}><Icon name="chevron" size={17} /></button></div>{previewMode ? <button className="button button-primary" onClick={() => { setPreviewMode(false); setRows([]); setBudgetRows([]); setGoalRows([]); setRecurringRows([]); }}><Icon name="plus" size={17} />Criar conta para salvar</button> : <><button className="button button-outline" onClick={() => setModal('import')}><Icon name="upload" size={17} />Importar CSV</button><button className="button button-primary" onClick={() => openMovementEditor()}><Icon name="plus" size={17} />Nova movimentação</button></>}</div>
           </div>
 
           {!supabase && <div className="notice warning-notice">A conexão com o banco não está configurada.</div>}
@@ -769,7 +778,7 @@ export default function Home() {
             <div className="panel-heading transaction-heading"><div><div className="eyebrow">ACOMPANHAMENTO DE PERTO</div><h2>Movimentações</h2><p>{currentRows.length} {currentRows.length === 1 ? 'registro' : 'registros'} em {monthLabel(month)}</p></div><div className="table-actions"><button className="button button-outline export-button" onClick={() => exportCsv(visibleRows)} disabled={!visibleRows.length}><Icon name="download" size={16} />Exportar CSV</button></div></div>
             <div className="table-toolbar"><label className="search-field"><Icon name="search" size={17} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar movimentação" aria-label="Buscar movimentação" /></label><label className="filter-select"><Icon name="filter" size={16} /><select value={kindFilter} onChange={event => setKindFilter(event.target.value)} aria-label="Filtrar tipo"><option value="todos">Todos os tipos</option><option value="receita">Receitas</option><option value="despesa">Despesas</option></select></label><label className="filter-select category-filter"><select value={categoryFilter} onChange={event => setCategoryFilter(event.target.value)} aria-label="Filtrar categoria"><option value="todas">Todas as categorias</option>{[...new Set(rows.map(row => row.categoria))].sort().map(category => <option key={category}>{category}</option>)}</select></label></div>
             <div className="table-scroll"><table><thead><tr><th>DESCRIÇÃO</th><th>DATA</th><th>CATEGORIA</th><th>TIPO</th><th className="amount-head">VALOR</th><th aria-label="Ações" /></tr></thead><tbody>
-              {visibleRows.slice(0, 8).map(row => <tr key={row.id}><td><div className="transaction-name"><span className={`transaction-symbol ${row.tipo}`}><Icon name={row.tipo === 'receita' ? 'arrowDown' : 'arrowUp'} size={15} /></span><span>{row.descricao}</span></div></td><td className="date-cell">{dateName.format(new Date(`${row.data}T12:00:00`))}</td><td><span className="category-pill">{row.categoria}</span></td><td><span className={`type-label ${row.tipo}`}>{row.tipo === 'receita' ? 'Receita' : 'Despesa'}</span></td><td className={`amount-cell ${row.tipo}`}>{row.tipo === 'despesa' ? '− ' : '+ '}{money.format(Number(row.valor))}</td><td>{!previewMode && <div className="row-actions"><button className="icon-button" title="Editar" aria-label={`Editar ${row.descricao}`} onClick={() => { setEditing(row); setCategoryValue(row.categoria); setSuggestedCategory(''); setModal('movement'); }}><Icon name="pencil" size={15} /></button><button className="icon-button delete-action" title="Excluir" aria-label={`Excluir ${row.descricao}`} onClick={() => deleteMovement(row.id)}><Icon name="trash" size={15} /></button></div>}</td></tr>)}
+              {visibleRows.slice(0, 8).map(row => <tr key={row.id}><td><div className="transaction-name"><span className={`transaction-symbol ${row.tipo}`}><Icon name={row.tipo === 'receita' ? 'arrowDown' : 'arrowUp'} size={15} /></span><span>{row.descricao}</span></div></td><td className="date-cell">{dateName.format(new Date(`${row.data}T12:00:00`))}</td><td><span className="category-pill">{row.categoria}</span></td><td><span className={`type-label ${row.tipo}`}>{row.tipo === 'receita' ? 'Receita' : 'Despesa'}</span></td><td className={`amount-cell ${row.tipo}`}>{row.tipo === 'despesa' ? '− ' : '+ '}{money.format(Number(row.valor))}</td><td>{!previewMode && <div className="row-actions"><button className="icon-button" title="Editar" aria-label={`Editar ${row.descricao}`} onClick={() => openMovementEditor(row)}><Icon name="pencil" size={15} /></button><button className="icon-button delete-action" title="Excluir" aria-label={`Excluir ${row.descricao}`} onClick={() => deleteMovement(row.id)}><Icon name="trash" size={15} /></button></div>}</td></tr>)}
               {!loading && !visibleRows.length && <tr><td colSpan="6"><div className="empty-state"><span className="empty-illustration"><Icon name="receipt" size={24} /></span><strong>{rows.length ? 'Nenhum resultado por aqui' : 'Sua história começa com um registro'}</strong><p>{rows.length ? 'Ajuste os filtros ou escolha outro mês.' : 'Adicione uma movimentação ou carregue a amostra fictícia para conhecer a dashboard.'}</p>{!rows.length && <button className="button button-outline" onClick={loadDemo} disabled={busy}>Carregar amostra fictícia</button>}</div></td></tr>}
               {loading && <tr><td colSpan="6"><div className="table-loading">Carregando seus registros…</div></td></tr>}
             </tbody></table></div>
@@ -785,13 +794,13 @@ export default function Home() {
         </div>
       </main>
 
-      {modal === 'movement' && <Modal title={editing ? 'Editar movimentação' : 'Nova movimentação'} onClose={() => { setModal(''); setEditing(null); setCategoryValue(''); setSuggestedCategory(''); }}>
+      {modal === 'movement' && <Modal title={editing ? 'Editar movimentação' : 'Nova movimentação'} onClose={closeMovementEditor}>
         <form className="movement-form" onSubmit={saveMovement}>
-          <label>Tipo<div className="type-toggle"><label><input name="tipo" type="radio" value="despesa" defaultChecked={editing ? editing.tipo === 'despesa' : true} /><span>Despesa</span></label><label><input name="tipo" type="radio" value="receita" defaultChecked={editing?.tipo === 'receita'} /><span>Receita</span></label></div></label>
+          <label>Tipo<div className="type-toggle"><label><input name="tipo" type="radio" value="despesa" checked={movementType === 'despesa'} onChange={event => changeMovementType(event.target.value)} /><span>Despesa</span></label><label><input name="tipo" type="radio" value="receita" checked={movementType === 'receita'} onChange={event => changeMovementType(event.target.value)} /><span>Receita</span></label></div></label>
           <div className="form-row"><label>Valor<input name="valor" type="number" min="0.01" step="0.01" placeholder="0,00" defaultValue={editing ? Number(editing.valor).toFixed(2) : ''} required /></label><label>Data<input name="data" type="date" defaultValue={editing?.data || new Date().toISOString().slice(0, 10)} required /></label></div>
-          <label>Descrição<input name="descricao" type="text" placeholder="Ex.: supermercado" defaultValue={editing?.descricao || ''} maxLength="120" onChange={event => setSuggestedCategory(suggestCategory(event.target.value))} required /></label>
-          <label>Categoria<input name="categoria" type="text" list="category-options" placeholder="Selecione ou digite" value={categoryValue} onChange={event => setCategoryValue(event.target.value)} maxLength="60" required />{suggestedCategory && suggestedCategory !== categoryValue && <button type="button" className="suggestion-chip" onClick={() => setCategoryValue(suggestedCategory)}>Sugestão: usar {suggestedCategory}</button>}<datalist id="category-options">{categories.map(category => <option key={category} value={category} />)}</datalist></label>
-          <div className="modal-actions"><button type="button" className="button button-outline" onClick={() => { setModal(''); setEditing(null); setCategoryValue(''); setSuggestedCategory(''); }}>Cancelar</button><button className="button button-primary" type="submit" disabled={busy}>{busy ? 'Salvando…' : editing ? 'Salvar alterações' : 'Adicionar registro'}</button></div>
+          <label>Descrição<input name="descricao" type="text" placeholder="Ex.: supermercado" value={descriptionValue} maxLength="120" onChange={event => setDescriptionValue(event.target.value)} required /></label>
+          <label>Categoria<input name="categoria" type="text" list="category-options" placeholder="Selecione ou digite" value={categoryValue} onChange={event => setCategoryValue(event.target.value)} maxLength="60" required />{suggestedCategory && suggestedCategory !== categoryValue && <button type="button" className="suggestion-chip" onClick={() => setCategoryValue(suggestedCategory)}>Sugestão: usar {suggestedCategory}</button>}<datalist id="category-options">{movementCategories.map(category => <option key={category} value={category} />)}</datalist></label>
+          <div className="modal-actions"><button type="button" className="button button-outline" onClick={closeMovementEditor}>Cancelar</button><button className="button button-primary" type="submit" disabled={busy}>{busy ? 'Salvando…' : editing ? 'Salvar alterações' : 'Adicionar registro'}</button></div>
         </form>
       </Modal>}
 
@@ -806,7 +815,7 @@ export default function Home() {
       {modal === 'budget' && <Modal title={planningEditing ? 'Editar limite mensal' : 'Definir orçamento'} onClose={() => { setModal(''); setPlanningEditing(null); }}>
         <form className="movement-form" onSubmit={saveBudget}>
           <p className="muted form-context">Limite para {monthLabel(month)}.</p>
-          <label>Categoria<input name="categoria" type="text" list="budget-category-options" placeholder="Selecione ou digite" defaultValue={planningEditing?.categoria || ''} maxLength="60" required /><datalist id="budget-category-options">{categories.map(category => <option key={category} value={category} />)}</datalist></label>
+          <label>Categoria<input name="categoria" type="text" list="budget-category-options" placeholder="Selecione ou digite" defaultValue={planningEditing?.categoria || ''} maxLength="60" required /><datalist id="budget-category-options">{expenseCategories.map(category => <option key={category} value={category} />)}</datalist></label>
           <label>Limite mensal<input name="limite" type="number" min="0.01" step="0.01" placeholder="0,00" defaultValue={planningEditing ? Number(planningEditing.limite).toFixed(2) : ''} required /></label>
           <div className="modal-actions"><button type="button" className="button button-outline" onClick={() => { setModal(''); setPlanningEditing(null); }}>Cancelar</button><button className="button button-primary" type="submit" disabled={busy}>{busy ? 'Salvando…' : 'Salvar limite'}</button></div>
         </form>
@@ -823,7 +832,7 @@ export default function Home() {
         <form className="movement-form" onSubmit={saveRecurring}>
           <label>Descrição<input name="descricao" type="text" placeholder="Ex.: aluguel" defaultValue={planningEditing?.descricao || ''} maxLength="120" required /></label>
           <div className="form-row"><label>Valor mensal<input name="valor" type="number" min="0.01" step="0.01" placeholder="0,00" defaultValue={planningEditing ? Number(planningEditing.valor).toFixed(2) : ''} required /></label><label>Dia de vencimento<input name="dia_vencimento" type="number" min="1" max="31" step="1" defaultValue={planningEditing?.dia_vencimento || 1} required /></label></div>
-          <label>Categoria<input name="categoria" type="text" list="recurring-category-options" placeholder="Selecione ou digite" defaultValue={planningEditing?.categoria || ''} maxLength="60" required /><datalist id="recurring-category-options">{categories.map(category => <option key={category} value={category} />)}</datalist></label>
+          <label>Categoria<input name="categoria" type="text" list="recurring-category-options" placeholder="Selecione ou digite" defaultValue={planningEditing?.categoria || ''} maxLength="60" required /><datalist id="recurring-category-options">{expenseCategories.map(category => <option key={category} value={category} />)}</datalist></label>
           <p className="muted form-context">O lançamento é criado apenas quando você selecionar “Lançar no mês”.</p>
           <div className="modal-actions"><button type="button" className="button button-outline" onClick={() => { setModal(''); setPlanningEditing(null); }}>Cancelar</button><button className="button button-primary" type="submit" disabled={busy}>{busy ? 'Salvando…' : 'Salvar recorrência'}</button></div>
         </form>

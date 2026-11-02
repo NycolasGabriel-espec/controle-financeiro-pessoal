@@ -16,10 +16,16 @@ O MVP e as evoluções funcionais deste documento estão implementados: moviment
 - Definir limites mensais por categoria e acompanhar o valor usado. O progresso respeita os filtros de movimentação ativos.
 - Criar metas de economia com valor atual, alvo e prazo opcional; o progresso é atualizado manualmente.
 - Cadastrar despesas recorrentes e, quando solicitado, lançá-las no mês escolhido. Nenhum lançamento automático é feito.
-- Sugerir uma categoria a partir de termos conhecidos na descrição; a pessoa confirma ou escolhe outra categoria.
+- Mostrar categorias de acordo com o tipo de movimentação e sugerir uma categoria a partir de termos conhecidos na descrição; a pessoa confirma ou escolhe outra categoria.
 - Gerar até cinco conclusões com base nos dados e filtros disponíveis. A tela informa quando não há registros suficientes para chegar a três conclusões.
 - Marcar o mês atual como parcial, informar períodos futuros e explicar quando indicadores não podem ser calculados por falta de denominador.
 - Acessar uma demonstração fictícia somente para leitura, sem salvar dados.
+
+## Categorias de movimentação
+
+As opções de despesas incluem Supermercado, Restaurantes e delivery, Moradia, Transporte, Saúde, Lazer, Educação, Assinaturas, Compras e vestuário, Cuidados pessoais, Impostos e taxas, Pets, Presentes e doações, Seguros, Cartão de crédito e Outros. Alimentação continua disponível para manter a compatibilidade com os registros existentes.
+
+As opções de receitas são Salário, Freelance, Vendas, Rendimentos, Aluguéis recebidos, Benefícios, Bônus e comissões, 13º salário e férias, Participação nos lucros, Presentes e doações recebidas, Distribuição de lucros, Royalties e direitos autorais e Outros. As sugestões por descrição reconhecem termos dessas categorias, como comissão, décimo terceiro, PLR e royalties. Orçamentos e recorrências oferecem apenas as opções de despesas. Continua sendo possível digitar categorias personalizadas, e os registros já salvos não são reclassificados automaticamente.
 
 ## Indicadores e limites
 
