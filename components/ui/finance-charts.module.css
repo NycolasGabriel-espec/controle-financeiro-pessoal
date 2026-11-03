@@ -2,22 +2,19 @@
 .legend { display: flex; align-items: center; gap: 18px; color: var(--text-muted); font-size: 11px; }
 .legend > span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i, .tooltip i { width: 7px; height: 7px; flex-shrink: 0; border-radius: 2px; }
-.incomeKey, .incomeBar { background: var(--chart-income); }
-.expenseKey, .expenseBar { background: var(--chart-expense); }
+.incomeKey { background: var(--chart-income); }
+.expenseKey { background: var(--chart-expense); }
+.legend .incomeLineKey, .legend .expenseLineKey { width: 17px; height: 0; border-radius: 0; border-top: 2px solid var(--chart-income); }
+.legend .expenseLineKey { border-top-color: var(--chart-expense); border-top-style: dashed; }
 .positiveKey { background: var(--success); }
 .negativeKey { background: var(--error); }
 .legend small { margin-left: auto; color: var(--text-subtle); font-size: 10px; }
-.barChart, .lineChart { position: relative; padding-left: 40px; margin-top: 25px; }
+.areaChart, .lineChart { position: relative; padding-left: 40px; margin-top: 25px; }
 .axis { position: absolute; inset: 0 auto 0 0; width: 32px; color: var(--text-subtle); font-size: 10px; font-variant-numeric: tabular-nums; }
 .axis > span { position: absolute; right: 0; transform: translateY(-50%); white-space: nowrap; }
-.plot { position: relative; height: 190px; }
-.grid { position: absolute; inset: 0; pointer-events: none; }
-.grid > span { position: absolute; right: 0; left: 0; border-top: 1px dashed var(--border); }
-.barColumns { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
-.barColumn, .lineColumn { position: relative; min-width: 0; border-radius: 5px 5px 0 0; }
+.cashPlot { position: relative; height: 230px; }
+.lineColumn { position: relative; min-width: 0; border-radius: 5px 5px 0 0; }
 .currentMonth { background: #e6e8eb04; }
-.barPair { height: 100%; display: flex; align-items: flex-end; justify-content: center; gap: 5px; padding-top: 0; }
-.bar { display: block; width: clamp(10px, 1.4vw, 21px); border-radius: 4px 4px 0 0; }
 .monthButton { position: absolute; inset: -4px 0 -31px; width: 100%; min-width: 0; padding: 0; border: 1px solid transparent; border-radius: 5px; color: var(--text-subtle); background: transparent; cursor: pointer; transition: background-color 120ms ease-out, border-color 120ms ease-out; }
 .monthButton > span { position: absolute; right: 0; bottom: 0; left: 0; display: block; font-size: 11px; line-height: 24px; text-align: center; text-transform: capitalize; }
 .currentMonth .monthButton > span { color: var(--text); font-weight: 600; }
@@ -35,6 +32,16 @@
 .lineChart { margin-top: 19px; }
 .linePlot { position: relative; height: 160px; }
 .lineSvg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.cashFlowChart .lineSvg { pointer-events: none; }
+.cashFlowChart .tooltip { top: 14px; }
+.cashFlowChart .hint { margin-top: 43px; }
+.incomeLine, .expenseLine { fill: none; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.incomeLine { stroke: var(--chart-income); }
+.expenseLine { stroke: var(--chart-expense); stroke-dasharray: 5 5; }
+.activeGuide { stroke: var(--text-subtle); stroke-width: 1; stroke-dasharray: 3 5; opacity: .5; vector-effect: non-scaling-stroke; }
+.incomeDot, .expenseDot { stroke: var(--surface); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.incomeDot { fill: var(--chart-income); }
+.expenseDot { fill: var(--chart-expense); }
 .gridLine { stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 5; vector-effect: non-scaling-stroke; }
 .zeroLine { stroke: var(--text-subtle); stroke-width: 1; stroke-dasharray: 3 5; opacity: .5; vector-effect: non-scaling-stroke; }
 .positiveLine, .negativeLine { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
@@ -50,15 +57,12 @@
 .balanceChart .hint { margin-top: 43px; }
 .srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 700px) {
-  .bar { width: clamp(10px, 2.4vw, 22px); }
+  .cashPlot { height: 190px; }
   .tooltip { width: 192px; padding: 10px; }
 }
 @media (max-width: 380px) {
-  .barChart, .lineChart { padding-left: 31px; }
+  .areaChart, .lineChart { padding-left: 31px; }
   .axis { width: 25px; font-size: 9px; }
-  .barColumns { gap: 5px; }
-  .barPair { gap: 3px; }
-  .bar { width: 10px; }
   .monthButton > span { font-size: 10px; }
   .legend { gap: 12px; font-size: 10px; }
   .tooltip { width: 182px; }

@@ -35,6 +35,25 @@ function AccessibleData({ points, balance = false }: { points: MonthPoint[]; bal
   </table></div>;
 }
 
+// Harmonic-mean tangents keep each segment inside its neighboring values.
+function monotonePath(points: { x: number; y: number }[]) {
+  const slopes = points.slice(1).map((point, index) => (point.y - points[index].y) / (point.x - points[index].x));
+  const tangents = points.map((_, index) => {
+    if (index === 0) return slopes[0];
+    if (index === points.length - 1) return slopes[slopes.length - 1];
+    const before = slopes[index - 1];
+    const after = slopes[index];
+    return before * after <= 0 ? 0 : 2 * before * after / (before + after);
+  });
+
+  return points.reduce((path, point, index) => {
+    if (index === 0) return `M ${point.x} ${point.y}`;
+    const previous = points[index - 1];
+    const third = (point.x - previous.x) / 3;
+    return `${path} C ${previous.x + third} ${previous.y + third * tangents[index - 1]}, ${point.x - third} ${point.y - third * tangents[index]}, ${point.x} ${point.y}`;
+  }, '');
+}
+
 export function CashFlowChart({ rows, month }: ChartProps) {
   const points = useMonthPoints(rows, month);
   const [activeMonth, setActiveMonth] = useState<string | null>(null);
@@ -42,24 +61,41 @@ export function CashFlowChart({ rows, month }: ChartProps) {
   const chartRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(chartRef, { once: true, amount: .25 });
   const tooltipId = useId();
+  const gradientId = useId().replace(/:/g, '');
   const maximum = Math.max(1, ...points.flatMap(point => [point.income, point.expense]));
-  const scale = Math.ceil(maximum / 4) * 4;
+  const step = 10 ** Math.floor(Math.log10(maximum)) / 2;
+  const scale = Math.ceil(maximum * 1.12 / step) * step;
   const hasData = points.some(point => point.count > 0);
+  const x = (index: number) => 50 + index * 100;
+  const y = (value: number) => 230 * (1 - value / scale);
+  const incomePath = monotonePath(points.map((point, index) => ({ x: x(index), y: y(point.income) })));
+  const expensePath = monotonePath(points.map((point, index) => ({ x: x(index), y: y(point.expense) })));
+  const activeIndex = points.findIndex(point => point.key === activeMonth);
+  const visible = isInView || reducedMotion;
 
-  return <div className={styles.chart} ref={chartRef}>
-    <div className={styles.legend} aria-hidden="true"><span><i className={styles.incomeKey} />Receitas</span><span><i className={styles.expenseKey} />Despesas</span><small>R$</small></div>
-    <div className={styles.barChart}>
+  return <div className={`${styles.chart} ${styles.cashFlowChart}`} ref={chartRef}>
+    <div className={styles.legend} aria-hidden="true"><span><i className={styles.incomeLineKey} />Receitas</span><span><i className={styles.expenseLineKey} />Despesas</span><small>Valores em R$</small></div>
+    <div className={styles.areaChart}>
       <div className={styles.axis} aria-hidden="true">{[1, .75, .5, .25, 0].map(ratio => <span key={ratio} style={{ top: `${(1 - ratio) * 100}%` }}>{compact.format(scale * ratio)}</span>)}</div>
-      <div className={styles.plot}>
-        <div className={styles.grid} aria-hidden="true">{[0, 25, 50, 75, 100].map(top => <span key={top} style={{ top: `${top}%` }} />)}</div>
-        <div className={styles.barColumns}>
+      <div className={styles.cashPlot}>
+        <svg viewBox="0 0 600 230" preserveAspectRatio="none" className={styles.lineSvg} aria-hidden="true">
+          <defs><linearGradient id={`${gradientId}-income`} x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--chart-income)" stopOpacity=".2" /><stop offset="100%" stopColor="var(--chart-income)" stopOpacity=".015" /></linearGradient></defs>
+          {[0, .25, .5, .75, 1].map(ratio => <line key={ratio} x1="0" x2="600" y1={ratio * 230} y2={ratio * 230} className={styles.gridLine} />)}
+          {hasData && <>
+            <motion.path d={`${incomePath} L 550 230 L 50 230 Z`} fill={`url(#${gradientId}-income)`} initial={false} animate={{ opacity: visible ? 1 : 0 }} transition={{ duration: reducedMotion ? 0 : .45 }} />
+            <motion.path d={incomePath} className={styles.incomeLine} initial={false} animate={{ pathLength: visible ? 1 : 0, opacity: visible ? 1 : 0 }} transition={{ duration: reducedMotion ? 0 : .5, ease: 'easeOut' }} />
+            <motion.path d={expensePath} className={styles.expenseLine} initial={false} animate={{ opacity: visible ? 1 : 0 }} transition={{ duration: reducedMotion ? 0 : .45 }} />
+            {activeIndex >= 0 && <>
+              <line x1={x(activeIndex)} x2={x(activeIndex)} y1="0" y2="230" className={styles.activeGuide} />
+              <circle cx={x(activeIndex)} cy={y(points[activeIndex].income)} r="4" className={styles.incomeDot} />
+              <circle cx={x(activeIndex)} cy={y(points[activeIndex].expense)} r="4" className={styles.expenseDot} />
+            </>}
+          </>}
+        </svg>
+        <div className={styles.lineColumns}>
           {points.map((point, index) => {
             const selected = activeMonth === point.key;
-            return <div className={`${styles.barColumn} ${point.key === month ? styles.currentMonth : ''}`} key={point.key}>
-              <div className={styles.barPair} aria-hidden="true">
-                <motion.span className={`${styles.bar} ${styles.incomeBar}`} initial={false} animate={{ height: isInView || reducedMotion ? `${point.income / scale * 100}%` : '0%' }} transition={{ duration: reducedMotion ? 0 : .36, delay: isInView && !reducedMotion ? index * .025 : 0, ease: 'easeOut' }} />
-                <motion.span className={`${styles.bar} ${styles.expenseBar}`} initial={false} animate={{ height: isInView || reducedMotion ? `${point.expense / scale * 100}%` : '0%' }} transition={{ duration: reducedMotion ? 0 : .36, delay: isInView && !reducedMotion ? index * .025 + .035 : 0, ease: 'easeOut' }} />
-              </div>
+            return <div className={`${styles.lineColumn} ${point.key === month ? styles.currentMonth : ''}`} key={point.key}>
               <button type="button" className={styles.monthButton} aria-label={`${point.fullLabel}: receitas ${money.format(point.income)}, despesas ${money.format(point.expense)}`} aria-describedby={selected ? `${tooltipId}-${index}` : undefined} onPointerEnter={event => { if (event.pointerType !== 'touch') setActiveMonth(point.key); }} onPointerLeave={event => { if (event.pointerType !== 'touch') setActiveMonth(null); }} onFocus={() => setActiveMonth(point.key)} onBlur={() => setActiveMonth(null)} onClick={() => setActiveMonth(point.key)} onKeyDown={event => { if (event.key === 'Escape') setActiveMonth(null); }}><span>{point.label}</span></button>
               {selected && <div id={`${tooltipId}-${index}`} role="tooltip" className={`${styles.tooltip} ${index < 2 ? styles.tooltipStart : index > 3 ? styles.tooltipEnd : ''}`}><strong>{point.fullLabel}</strong><span><i className={styles.incomeKey} />Receitas<b>{money.format(point.income)}</b></span><span><i className={styles.expenseKey} />Despesas<b>{money.format(point.expense)}</b></span></div>}
             </div>;
@@ -68,7 +104,7 @@ export function CashFlowChart({ rows, month }: ChartProps) {
         {!hasData && <div className={styles.empty}>O fluxo aparece com as primeiras movimentações.</div>}
       </div>
     </div>
-    <p className={styles.hint}>Selecione um mês para ver os valores.</p>
+    <p className={styles.hint}>Passe o cursor ou selecione um mês para ver os valores.</p>
     <AccessibleData points={points} />
   </div>;
 }

@@ -7,4 +7,5 @@
 .selected:hover { background: transparent; }
 @media (max-width: 560px) {
   .activePill { border-radius: 5px; }
+  .desktopOnly { display: none; }
 }

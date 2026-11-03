@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type MouseEvent } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { LayoutDashboard, ReceiptText, Repeat2, Sparkles, Target, Upload } from 'lucide-react';
+import { LayoutDashboard, ReceiptText, Repeat2, Sparkles, Target, Upload, Wallet, RefreshCw } from 'lucide-react';
 import styles from './dashboard-navigation.module.css';
 
 const sections = [
@@ -11,6 +11,8 @@ const sections = [
   { id: 'orcamentos', label: 'Orçamentos', mobile: 'Limites', icon: Target },
   { id: 'metas', label: 'Metas de economia', mobile: 'Metas', icon: Sparkles },
   { id: 'recorrencias', label: 'Recorrências', mobile: 'Mensais', icon: Repeat2 },
+  { id: 'contas', label: 'Contas e cartões', mobile: 'Contas', icon: Wallet },
+  { id: 'automacoes', label: 'Automações', mobile: 'Rotinas', icon: RefreshCw },
 ] as const;
 type SectionId = typeof sections[number]['id'];
 
@@ -85,7 +87,7 @@ export function DashboardNavigation({ onImport }: { onImport: () => void }) {
   function link(section: typeof sections[number]) {
     const selected = active === section.id;
     const Icon = section.icon;
-    return <a key={section.id} className={`side-link ${styles.link} ${selected ? styles.selected : ''}`} href={`#${section.id}`} title={section.label} aria-current={selected ? 'location' : undefined}
+    return <a key={section.id} className={`side-link ${styles.link} ${section.id === 'contas' || section.id === 'automacoes' ? styles.desktopOnly : ''} ${selected ? styles.selected : ''}`} href={`#${section.id}`} title={section.label} aria-current={selected ? 'location' : undefined}
       onClick={(event: MouseEvent<HTMLAnchorElement>) => { if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && event.button === 0) select(section.id); }}>
       {selected && <motion.span className={styles.activePill} layoutId={`${layoutId}-active`} aria-hidden="true" transition={{ duration: reducedMotion ? 0 : .24, ease: [.2, 0, 0, 1] }} />}
       <Icon size={19} strokeWidth={1.7} aria-hidden="true" />
